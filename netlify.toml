@@ -1,0 +1,32 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+  SECRETS_SCAN_OMIT_KEYS = "VITE_FIREBASE_API_KEY,VITE_FIREBASE_AUTH_DOMAIN,VITE_FIREBASE_PROJECT_ID,VITE_FIREBASE_STORAGE_BUCKET,VITE_FIREBASE_MESSAGING_SENDER_ID,VITE_FIREBASE_APP_ID,VITE_FIREBASE_DATABASE_ID,VITE_GOOGLE_MAPS_API_KEY,VITE_GEMINI_API_KEY,SMTP_HOST,SMTP_PORT,SMTP_USER,SMTP_SECURE,ADMIN_EMAIL,APP_URL"
+
+[functions]
+  directory = "netlify/functions"
+
+# SPA Redirect: Ensure that all direct sub-resource URL paths fallback 
+# gracefully to index.html for correct client-side SPA routing state.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# High-Performance Caching directives for production assets
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Global security headers for standard browsing safety
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"

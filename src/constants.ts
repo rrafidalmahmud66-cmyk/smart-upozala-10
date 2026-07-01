@@ -1,0 +1,200 @@
+import { 
+  Hospital, 
+  Stethoscope, 
+  FlaskConical, 
+  UserRound, 
+  Dog, 
+  Leaf, 
+  Pill, 
+  Ambulance, 
+  Droplet, 
+  Shield, 
+  Flame, 
+  PhoneCall, 
+  Building2, 
+  Briefcase, 
+  Info, 
+  School, 
+  BookOpen, 
+  MapPin, 
+  Hotel, 
+  Utensils, 
+  ShoppingBag, 
+  Bus, 
+  TrainFront, 
+  Sprout, 
+  Newspaper, 
+  Bell, 
+  Calendar, 
+  SearchCode, 
+  FileWarning,
+  Plane,
+  Files,
+  Globe,
+  Coins,
+  Store,
+  Banknote,
+  CreditCard,
+  FileText,
+  Building,
+  Zap,
+  HandCoins,
+  Truck,
+  Monitor,
+  LibraryBig,
+  Scale,
+  Fuel,
+  TrendingUp,
+  Gavel,
+  UserCheck,
+  Activity,
+  HeartPulse,
+  Microscope,
+  Dna,
+  Landmark,
+  Users,
+  Moon,
+  Trees,
+  Bed,
+  ShoppingBasket,
+  FileStack,
+  Baby,
+  Signature,
+  Palmtree,
+  Warehouse,
+  BookText,
+  MousePointer2,
+  PhoneForwarded,
+  Siren,
+  Construction,
+  Wrench,
+  Droplets,
+  Trophy,
+  ShieldAlert,
+  Hammer,
+  Car,
+  Home,
+  Bot,
+  Compass,
+  ArrowRight,
+  Plus,
+  GraduationCap,
+  ShieldCheck,
+  LayoutGrid
+} from 'lucide-react';
+import { ServiceItem } from './types';
+
+export const COLORS = {
+  primary: '#0F9D58', // Green
+  secondary: '#4285F4', // Blue
+  accent: '#FFC107', // Yellow
+  background: '#F5F7FA', // Soft White
+  dark: '#1A1A1A',
+  card: '#FFFFFF',
+  text: '#2D3436',
+  muted: '#636E72'
+};
+
+// Sub-categories for providers
+export const PROVIDER_CATEGORIES = [
+  { 
+    id: 'service', 
+    bn: 'সেবা ও মেরামত', 
+    label: 'Services', 
+    icon: Hammer, 
+    color: 'from-orange-400 to-rose-500', 
+    accent: 'text-orange-500',
+    hex: '#F97316',
+    sub: ['ইলেকট্রিশিয়ান', 'প্লাম্বার', 'এসি মেরামত', 'সিসিটিভি', 'কম্পিউটার সার্ভিস', 'অন্যান্য'] 
+  },
+  { 
+    id: 'transport', 
+    bn: 'পরিবহন ও লজিস্টিক', 
+    label: 'Transport', 
+    icon: Car, 
+    color: 'from-blue-400 to-indigo-500', 
+    accent: 'text-blue-500',
+    hex: '#3B82F6',
+    sub: ['অ্যাম্বুলেন্স', 'প্রাইভেট কার', 'ট্রাক / পিকআপ', 'বাইক সার্ভিস', 'বাস টিকিট', 'অন্যান্য'] 
+  },
+  { 
+    id: 'property', 
+    bn: 'বাসা ও জমি', 
+    label: 'Property', 
+    icon: Home, 
+    color: 'from-indigo-400 to-purple-500', 
+    accent: 'text-indigo-500',
+    hex: '#6366F1',
+    sub: ['বাসা ভাড়া', 'জমি ক্রয়-বিক্রয়', 'ফ্ল্যাট', 'অফিস স্পেস', 'অন্যান্য'] 
+  },
+  { 
+    id: 'business', 
+    bn: 'ব্যবসা ও বাণিজ্য', 
+    label: 'Business', 
+    icon: Briefcase, 
+    color: 'from-emerald-400 to-teal-500', 
+    accent: 'text-emerald-500',
+    hex: '#10B981',
+    sub: ['পাইকারি পণ্য', 'রেস্টুরেন্ট', 'বেকারি', 'ফার্মেসি', 'অন্যান্য'] 
+  },
+  { 
+    id: 'prof', 
+    bn: 'পেশাদার পরামর্শ', 
+    label: 'Professional', 
+    icon: Gavel, 
+    color: 'from-teal-400 to-cyan-500', 
+    accent: 'text-teal-500',
+    hex: '#14B8A6',
+    sub: ['আইনজীবী', 'হিসাবরক্ষক', 'ইঞ্জিনিয়ার', 'কন্সালট্যান্ট', 'অন্যান্য'] 
+  },
+];
+
+export const EXPLORE_CATEGORIES = [
+  { id: 'health', bn: 'স্বাস্থ্য সেবা', label: 'Health', icon: Hospital, color: 'from-emerald-400 to-teal-500', emoji: '🏥' },
+  { id: 'edu', bn: 'শিক্ষা সেবা', label: 'Education', icon: GraduationCap, color: 'from-blue-400 to-indigo-500', emoji: '🎓' },
+  { id: 'emergency', bn: 'জরুরি সেবা', label: 'Emergency', icon: Siren, color: 'from-rose-500 to-red-600', emoji: '🚨' },
+  { id: 'gov', bn: 'সরকারি সেবা', label: 'Gov Services', icon: Landmark, color: 'from-slate-600 to-slate-800', emoji: '🏛️' },
+  { id: 'agri', bn: 'কৃষি সেবা', label: 'Agriculture', icon: Sprout, color: 'from-green-500 to-emerald-600', emoji: '🌾' },
+  { id: 'transport', bn: 'পরিবহন সেবা', label: 'Transport', icon: Bus, color: 'from-orange-400 to-amber-500', emoji: '🚌' },
+  { id: 'tourism', bn: 'পর্যটন ও বিনোদন', label: 'Tourism', icon: Palmtree, color: 'from-fuchsia-500 to-pink-600', emoji: '🌴' },
+  { id: 'religious', bn: 'ধর্মীয় সেবা', label: 'Religious', icon: Moon, color: 'from-indigo-500 to-purple-600', emoji: '🕌' },
+];
+
+export const SERVICES: ServiceItem[] = [
+  {
+    id: '1',
+    name: 'Upazila Health Complex',
+    bnName: 'উপজেলা স্বাস্থ্য কমপ্লেক্স',
+    icon: Hospital,
+    color: '#10B981',
+    category: 'health',
+    description: 'শ্রীপুর উপজেলা স্বাস্থ্য কমপ্লেক্স জনসাধারণের জন্য ২৪ ঘণ্টা চিকিৎসা সেবা প্রদান করে।',
+    phone: '01711122334',
+    locationDetails: 'উপজেলা পরিষদ সংলগ্ন, শ্রীপুর',
+    isVisible: true
+  },
+  {
+    id: '2',
+    name: 'Sreepur Police Station',
+    bnName: 'শ্রীপুর থানা',
+    icon: ShieldCheck,
+    color: '#3B82F6',
+    category: 'emergency',
+    description: 'আইন-শৃঙ্খলা রক্ষায় যেকোনো প্রয়োজনে শ্রীপুর থানার সাথে যোগাযোগ করুন।',
+    phone: '01769690184',
+    locationDetails: 'শ্রীপুর বাজার রোড, শ্রীপুর',
+    isVisible: true
+  },
+  {
+    id: '3',
+    name: 'Fire Service',
+    bnName: 'ফায়ার সার্ভিস',
+    icon: Flame,
+    color: '#EF4444',
+    category: 'emergency',
+    description: 'অগ্নি নির্বাপণ ও যেকোনো দুর্যোগে দ্রুত সহায়তার জন্য কল করুন।',
+    phone: '01733373043',
+    locationDetails: 'মাওনা চৌরাস্তা, শ্রীপুর',
+    isVisible: true
+  }
+];

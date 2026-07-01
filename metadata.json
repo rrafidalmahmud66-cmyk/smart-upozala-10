@@ -1,0 +1,6 @@
+{
+  "name": "Smart Sreepur",
+  "description": "Smart Upazila Helpline for Sreepur Citizens. Access all government services, health, education, and emergency services in one place with AI-powered search.",
+  "requestFramePermissions": ["geolocation", "camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

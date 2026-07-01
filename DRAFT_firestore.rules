@@ -1,0 +1,397 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 0. Global Safety Net (Zero-Trust Catch-all)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ==========================================
+    // 1. GLOBAL HELPER UTILITIES & PRIMITIVES
+    // ==========================================
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && (
+        request.auth.token.email_verified == true || 
+        request.auth.token.firebase.sign_in_provider == 'phone' ||
+        request.auth.token.firebase.sign_in_provider == 'google.com'
+      );
+    }
+
+    // Security Hardened Role Lookup
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == "rrafidalmahmud66@gmail.com" ||
+        request.auth.token.email == "admin@sreepur.gov.bd" ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+
+    // ==========================================
+    // 2. RESOURCE MATCH BLOCKS & VALIDATORS
+    // ==========================================
+
+    // --- COLLECTION: Settings ---
+    match /settings/{settingId} {
+      allow get: if isValidId(settingId);
+      allow list: if true;
+      allow write: if isValidId(settingId) && isAdmin();
+    }
+
+    // --- COLLECTION: Users ---
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isSignedIn();
+      allow list: if isAdmin();
+      
+      // Creating Profile: Must match user ID & set default 'user' role
+      allow create: if isValidId(userId) && 
+                    isSignedIn() && 
+                    request.auth.uid == userId && 
+                    isValidUser(incoming()) && 
+                    incoming().role == 'user';
+      
+      // Updating Profile: Split into client attributes vs Admin-Only actions
+      allow update: if isValidId(userId) && isSignedIn() && (
+        // Admin can update anything (role, status, balances, approvals)
+        isAdmin() ||
+        // User can update standard profile, apply fields, live location, and transaction balances
+        (request.auth.uid == userId && 
+         incoming().diff(existing()).affectedKeys().hasOnly([
+           'displayName', 'photoURL', 'phone', 'preferences', 'fcmToken', 'updatedAt', 
+           'occupation', 'address', 'bio', 'email', 'isSeller', 'isRider', 
+           'businessName', 'vehicleType', 'lat', 'lng', 'lastActive', 
+           'walletBalance', 'sellerBalance', 'riderBalance'
+         ]) &&
+         isValidUser(incoming()))
+      );
+    }
+
+    function isValidUser(data) {
+      return data.uid == request.auth.uid &&
+             data.uid is string && data.uid.size() <= 128 &&
+             (!('phone' in data) || (data.phone is string && data.phone.size() <= 128)) &&
+             (!('occupation' in data) || (data.occupation is string && data.occupation.size() <= 200)) &&
+             (!('address' in data) || (data.address is string && data.address.size() <= 500)) &&
+             (!('bio' in data) || (data.bio is string && data.bio.size() <= 1000)) &&
+             data.role in ['user', 'admin'] &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100));
+    }
+
+
+    // --- COLLECTION: News ---
+    match /news/{newsId} {
+      allow get: if isValidId(newsId);
+      allow list: if true;
+      allow create: if isValidId(newsId) && 
+                    isAdmin() && 
+                    isEmailVerified() && 
+                    isValidNews(incoming()) && 
+                    incoming().authorId == request.auth.uid;
+                    
+      allow update: if isValidId(newsId) && 
+                    isAdmin() && 
+                    incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'category', 'image', 'videoUrl', 'updatedAt']) &&
+                    isValidNews(incoming());
+                    
+      allow delete: if isValidId(newsId) && isAdmin();
+    }
+
+    function isValidNews(data) {
+      return data.title is string && data.title.size() <= 200 &&
+             data.description is string && data.description.size() <= 10000 &&
+             data.category is string && data.category.size() <= 50 &&
+             (!('image' in data) || (data.image is string && data.image.size() <= 1000)) &&
+             (!('videoUrl' in data) || (data.videoUrl is string && data.videoUrl.size() <= 1000)) &&
+             data.authorId is string && data.authorId.size() <= 128;
+    }
+
+
+    // --- COLLECTION: Explore Services ---
+    match /explore_services/{serviceId} {
+      allow get: if isValidId(serviceId);
+      allow list: if true;
+      allow create: if isValidId(serviceId) && isAdmin() && isValidExploreService(incoming());
+      allow update: if isValidId(serviceId) && 
+                    isAdmin() && 
+                    incoming().diff(existing()).affectedKeys().hasOnly(['title', 'bengaliTitle', 'category', 'subCategory', 'shortDescription', 'fullDescription', 'contactNumber', 'hotline', 'address', 'openingHours', 'mapLink', 'latitude', 'longitude', 'website', 'image', 'tags', 'featured', 'emergency', 'isVisible', 'icon', 'color', 'updatedAt']) && 
+                    isValidExploreService(incoming());
+      allow delete: if isValidId(serviceId) && isAdmin();
+    }
+
+    function isValidExploreService(data) {
+      return data.title is string && data.title.size() <= 200 &&
+             data.category is string && data.category.size() <= 100 &&
+             (!('icon' in data) || (data.icon is string && data.icon.size() <= 100)) &&
+             (!('color' in data) || (data.color is string && data.color.size() <= 50)) &&
+             (!('isVisible' in data) || data.isVisible is bool);
+    }
+
+
+    // --- COLLECTION: Reports (Citizen Complaints) ---
+    match /reports/{reportId} {
+      // Direct get access only to owner, anonymous, or admin
+      allow get: if isValidId(reportId) && (
+        (isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin())) || 
+        resource.data.userId == 'anonymous'
+      );
+      
+      // List query security layer (no blanket reads)
+      allow list: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || 
+        isAdmin() || 
+        resource.data.userId == 'anonymous'
+      );
+      
+      allow create: if isValidId(reportId) && (
+        (isSignedIn() && isValidReport(incoming()) && incoming().userId == request.auth.uid) || 
+        (incoming().userId == 'anonymous' && isValidReport(incoming()))
+      );
+      
+      // Changing complaints metadata/status/responses is restricted strictly to admin checks
+      allow update: if isValidId(reportId) && 
+                    isAdmin() && 
+                    isEmailVerified() && 
+                    incoming().diff(existing()).affectedKeys().hasOnly(['status', 'priority', 'adminComment', 'updatedAt']);
+                    
+      allow delete: if isValidId(reportId) && isAdmin();
+    }
+
+    function isValidReport(data) {
+      return (data.userId == 'anonymous' || data.userId == request.auth.uid) &&
+             data.title is string && data.title.size() <= 200 &&
+             data.description is string && data.description.size() <= 5000 &&
+             data.category is string && data.category.size() <= 200 &&
+             data.status in ['pending', 'resolved', 'cancelled'] &&
+             (!('image' in data) || (data.image is string && data.image.size() <= 1000));
+    }
+
+
+    // --- COLLECTION: Providers (Upazila Service Directory) ---
+    match /providers/{providerId} {
+      allow get: if isValidId(providerId) && (
+        resource.data.status == 'approved' || 
+        (isSignedIn() && resource.data.userId == request.auth.uid) || 
+        isAdmin()
+      );
+      
+      allow list: if (
+        resource.data.status == 'approved' || 
+        (isSignedIn() && resource.data.userId == request.auth.uid) || 
+        isAdmin()
+      );
+      
+      allow create: if isValidId(providerId) && 
+                    isSignedIn() && 
+                    isEmailVerified() && 
+                    isValidProvider(incoming()) && 
+                    incoming().userId == request.auth.uid && 
+                    incoming().status == 'pending';
+                    
+      allow update: if isValidId(providerId) && (
+        (isSignedIn() && 
+         isEmailVerified() && 
+         resource.data.userId == request.auth.uid && 
+         incoming().diff(existing()).affectedKeys().hasOnly(['name', 'phone', 'whatsapp', 'address', 'facebook', 'website', 'description', 'experience', 'serviceCharge', 'availableTime', 'image', 'businessImage', 'serviceArea', 'location', 'updatedAt']) && 
+         isValidProvider(incoming())) || 
+        isAdmin()
+      );
+      
+      allow delete: if isValidId(providerId) && isAdmin();
+    }
+
+    function isValidProvider(data) {
+      return data.userId == request.auth.uid &&
+             data.category is string && data.category.size() <= 100 &&
+             ('name' in data) && data.name is string && data.name.size() <= 200 &&
+             ('phone' in data) && data.phone is string && data.phone.size() <= 20 &&
+             ('status' in data) && data.status in ['pending', 'approved', 'rejected'];
+    }
+
+
+    // --- COLLECTION: Reviews (Directory Service Reviews) ---
+    match /reviews/{reviewId} {
+      allow get: if isValidId(reviewId);
+      allow list: if true;
+      
+      allow create: if isValidId(reviewId) && 
+                    isSignedIn() && 
+                    isEmailVerified() && 
+                    isValidReview(incoming()) && 
+                    incoming().userId == request.auth.uid;
+                    
+      allow update: if isValidId(reviewId) && (
+        (isSignedIn() && 
+         isEmailVerified() && 
+         resource.data.userId == request.auth.uid && 
+         incoming().diff(existing()).affectedKeys().hasOnly(['rating', 'comment', 'updatedAt']) &&
+         isValidReview(incoming())) || 
+        isAdmin()
+      );
+      
+      allow delete: if isValidId(reviewId) && (
+        (isSignedIn() && isEmailVerified() && resource.data.userId == request.auth.uid) || 
+        isAdmin()
+      );
+    }
+
+    function isValidReview(data) {
+      return data.userId == request.auth.uid &&
+             data.providerId is string && data.providerId.size() <= 128 &&
+             data.rating is int && data.rating >= 1 && data.rating <= 5;
+    }
+
+
+    // --- COLLECTION: Notifications ---
+    match /notifications/{notifId} {
+      allow get: if isValidId(notifId) && isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isValidId(notifId) && isAdmin() && isValidNotification(incoming());
+      allow update: if isValidId(notifId) && 
+                    isAdmin() && 
+                    incoming().diff(existing()).affectedKeys().hasOnly(['title', 'message', 'type', 'updatedAt']) && 
+                    isValidNotification(incoming());
+      allow delete: if isValidId(notifId) && isAdmin();
+    }
+
+    function isValidNotification(data) {
+      return data.title is string && data.title.size() <= 200 &&
+             data.message is string && data.message.size() <= 2000 &&
+             data.type in ['notice', 'emergency', 'update'];
+    }
+
+    // --- COLLECTION: Abuse Reports ---
+    match /abuseReports/{reportId} {
+      allow get: if isValidId(reportId) && isSignedIn() && (resource.data.reporterId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.reporterId == request.auth.uid || isAdmin());
+      allow create: if isValidId(reportId) && 
+                    isSignedIn() && 
+                    isValidAbuseReport(incoming()) && 
+                    incoming().reporterId == request.auth.uid &&
+                    incoming().createdAt == request.time;
+      allow update: if isValidId(reportId) && 
+                    isAdmin() && 
+                    incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']);
+      allow delete: if isValidId(reportId) && isAdmin();
+    }
+
+    function isValidAbuseReport(data) {
+      return data.reporterId == request.auth.uid &&
+             data.reportedId is string && data.reportedId.size() <= 128 &&
+             data.reportedType in ['user', 'news', 'review'] &&
+             data.reason is string && data.reason.size() <= 1000 &&
+             data.status in ['pending', 'reviewed', 'resolved'] &&
+             (!('reportedTitle' in data) || (data.reportedTitle is string && data.reportedTitle.size() <= 500)) &&
+             (!('reportedDetails' in data) || (data.reportedDetails is string && data.reportedDetails.size() <= 5000));
+    }
+
+    // --- COLLECTION: Admin Notifications ---
+    match /admin_notifications/{notifId} {
+      allow get, list: if isAdmin();
+      allow create: if isValidId(notifId) && (
+        isSignedIn() || 
+        incoming().reportId is string
+      );
+      allow update, delete: if isValidId(notifId) && isAdmin();
+    }
+
+    // --- COLLECTION: Blood Donors ---
+    match /blood_donors/{donorId} {
+      allow get, list: if isValidId(donorId);
+      allow create: if isValidId(donorId);
+      allow update: if isValidId(donorId) && (isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
+      allow delete: if isValidId(donorId) && isAdmin();
+    }
+
+    // --- COLLECTION: Blood Requests ---
+    match /blood_requests/{requestId} {
+      allow get, list: if isValidId(requestId);
+      allow create: if isValidId(requestId);
+      allow update: if isValidId(requestId) && (isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
+      allow delete: if isValidId(requestId) && isAdmin();
+    }
+
+    // --- COLLECTION: Products ---
+    match /products/{productId} {
+      allow get: if isValidId(productId);
+      allow list: if true;
+      allow create: if isValidId(productId) && isSignedIn() && incoming().sellerId == request.auth.uid;
+      allow update: if isValidId(productId) && isSignedIn() && (resource.data.sellerId == request.auth.uid || isAdmin());
+      allow delete: if isValidId(productId) && isSignedIn() && (resource.data.sellerId == request.auth.uid || isAdmin());
+    }
+
+    // --- COLLECTION: Orders ---
+    match /orders/{orderId} {
+      allow get: if isValidId(orderId) && isSignedIn() && (
+        resource.data.buyerId == request.auth.uid || 
+        resource.data.sellerId == request.auth.uid || 
+        (resource.data.riderId != null && resource.data.riderId == request.auth.uid) || 
+        isAdmin()
+      );
+      allow list: if isSignedIn();
+      allow create: if isValidId(orderId) && isSignedIn() && incoming().buyerId == request.auth.uid;
+      allow update: if isValidId(orderId) && isSignedIn() && (
+        resource.data.buyerId == request.auth.uid || 
+        resource.data.sellerId == request.auth.uid || 
+        resource.data.riderId == request.auth.uid || 
+        (resource.data.riderId == null) ||
+        isAdmin()
+      );
+      allow delete: if isValidId(orderId) && isAdmin();
+    }
+
+    // --- COLLECTION: Verification Requests ---
+    match /verificationRequests/{reqId} {
+      allow get: if isValidId(reqId) && isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isValidId(reqId) && isSignedIn() && incoming().userId == request.auth.uid;
+      allow update: if isValidId(reqId) && isAdmin();
+      allow delete: if isValidId(reqId) && isAdmin();
+    }
+
+    // --- COLLECTION: Recharge Requests ---
+    match /rechargeRequests/{reqId} {
+      allow get: if isValidId(reqId) && isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isValidId(reqId) && isSignedIn() && incoming().userId == request.auth.uid;
+      allow update: if isValidId(reqId) && isAdmin();
+      allow delete: if isValidId(reqId) && isAdmin();
+    }
+
+    // --- COLLECTION: Withdrawal Requests ---
+    match /withdrawalRequests/{reqId} {
+      allow get: if isValidId(reqId) && isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isValidId(reqId) && isSignedIn() && incoming().userId == request.auth.uid;
+      allow update: if isValidId(reqId) && isAdmin();
+      allow delete: if isValidId(reqId) && isAdmin();
+    }
+
+    // --- COLLECTION: Support Messages ---
+    match /support_messages/{messageId} {
+      allow get: if isValidId(messageId) && isAdmin();
+      allow list: if isAdmin();
+      allow create: if isValidId(messageId);
+      allow update, delete: if isValidId(messageId) && isAdmin();
+    }
+
+  }
+}

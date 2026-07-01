@@ -1,0 +1,273 @@
+{
+  "entities": {
+    "user": {
+      "title": "user",
+      "description": "Information regarding citizen users and administrators.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Unique identifier for the user" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "phone": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "occupation": { "type": "string" },
+        "address": { "type": "string" },
+        "bio": { "type": "string" }
+      },
+      "required": ["uid", "role"]
+    },
+    "news": {
+      "title": "news",
+      "description": "Official updates or notices from the Upazila administration.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "image": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "authorId": { "type": "string" }
+      },
+      "required": ["title", "description", "category", "authorId"]
+    },
+    "report": {
+      "title": "report",
+      "description": "Grievances and complaints submitted by citizens.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "resolved", "cancelled"] },
+        "image": { "type": "string" }
+      },
+      "required": ["userId", "title", "description", "category", "status"]
+    },
+    "provider": {
+      "title": "provider",
+      "description": "Local verified service directory providers.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "category": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "whatsapp": { "type": "string" },
+        "address": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] }
+      },
+      "required": ["userId", "category", "name", "phone", "status"]
+    },
+    "review": {
+      "title": "review",
+      "description": "Public reviews and metrics left for active directory providers.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "providerId": { "type": "string" },
+        "rating": { "type": "integer" },
+        "comment": { "type": "string" }
+      },
+      "required": ["userId", "providerId", "rating"]
+    },
+    "abuseReport": {
+      "title": "abuseReport",
+      "description": "Reports of inappropriate content or user behavior submitted by users for admin moderation.",
+      "type": "object",
+      "properties": {
+        "reporterId": { "type": "string", "description": "The UID of the user submitting the report" },
+        "reportedId": { "type": "string", "description": "The ID of the reported content item, review, or user" },
+        "reportedType": { "type": "string", "enum": ["user", "news", "review"], "description": "The type of the target being reported" },
+        "reason": { "type": "string", "description": "The reason or category of the violation" },
+        "details": { "type": "string", "description": "Additional context or notes about the report" },
+        "status": { "type": "string", "enum": ["pending", "reviewed", "resolved"], "description": "Admin review status of this report" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the report was submitted" }
+      },
+      "required": ["reporterId", "reportedId", "reportedType", "reason", "status"]
+    },
+    "bloodDonor": {
+      "title": "bloodDonor",
+      "description": "Registered voluntary blood donors.",
+      "type": "object",
+      "properties": {
+        "name_bn": { "type": "string" },
+        "name_en": { "type": "string" },
+        "group": { "type": "string" },
+        "location_bn": { "type": "string" },
+        "location_en": { "type": "string" },
+        "phone": { "type": "string" },
+        "last_donation_bn": { "type": "string" },
+        "last_donation_en": { "type": "string" },
+        "available": { "type": "boolean" },
+        "userId": { "type": "string" }
+      },
+      "required": ["name_bn", "group", "location_bn", "phone", "available"]
+    },
+    "bloodRequest": {
+      "title": "bloodRequest",
+      "description": "Emergency blood requests submitted by patients or relatives.",
+      "type": "object",
+      "properties": {
+        "name_bn": { "type": "string" },
+        "name_en": { "type": "string" },
+        "group": { "type": "string" },
+        "hospital_bn": { "type": "string" },
+        "hospital_en": { "type": "string" },
+        "phone": { "type": "string" },
+        "date_bn": { "type": "string" },
+        "date_en": { "type": "string" },
+        "b_count_bn": { "type": "string" },
+        "b_count_en": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": ["name_bn", "group", "hospital_bn", "phone", "date_bn", "b_count_bn"]
+    },
+    "product": {
+      "title": "product",
+      "description": "E-commerce products posted by verified sellers.",
+      "type": "object",
+      "properties": {
+        "sellerId": { "type": "string" },
+        "sellerName": { "type": "string" },
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "category": { "type": "string" }
+      },
+      "required": ["sellerId", "name", "price"]
+    },
+    "order": {
+      "title": "order",
+      "description": "E-commerce purchases and delivery status records.",
+      "type": "object",
+      "properties": {
+        "buyerId": { "type": "string" },
+        "sellerId": { "type": "string" },
+        "productId": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["buyerId", "sellerId", "productId", "status"]
+    },
+    "verificationRequest": {
+      "title": "verificationRequest",
+      "description": "Seller or rider role onboarding verification applications.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "type": { "type": "string", "enum": ["seller", "rider"] },
+        "status": { "type": "string" }
+      },
+      "required": ["userId", "type", "status"]
+    },
+    "rechargeRequest": {
+      "title": "rechargeRequest",
+      "description": "User requests for wallet recharge top-ups.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string" }
+      },
+      "required": ["userId", "amount", "status"]
+    },
+    "withdrawalRequest": {
+      "title": "withdrawalRequest",
+      "description": "Seller or rider requests for transferring/withdrawing account earnings.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string" }
+      },
+      "required": ["userId", "amount", "status"]
+    },
+    "supportMessage": {
+      "title": "supportMessage",
+      "description": "Public user inquiries and help requests.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "message": { "type": "string" }
+      },
+      "required": ["message"]
+    },
+    "riderCashSubmission": {
+      "title": "riderCashSubmission",
+      "description": "Rider cash handovers for COD deliveries.",
+      "type": "object",
+      "properties": {
+        "riderId": { "type": "string" },
+        "amount": { "type": "number" },
+        "bkashNumber": { "type": "string" },
+        "transactionId": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["riderId", "amount", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "user",
+      "description": "User profile locations"
+    },
+    "/news/{newsId}": {
+      "schema": "news",
+      "description": "News announcements location"
+    },
+    "/reports/{reportId}": {
+      "schema": "report",
+      "description": "Citizen reports database location"
+    },
+    "/providers/{providerId}": {
+      "schema": "provider",
+      "description": "Upazila service providers database direction location"
+    },
+    "/reviews/{reviewId}": {
+      "schema": "review",
+      "description": "Consumer service review metrics location"
+    },
+    "/abuseReports/{reportId}": {
+      "schema": "abuseReport",
+      "description": "Moderation and abuse reports database location"
+    },
+    "/blood_donors/{donorId}": {
+      "schema": "bloodDonor",
+      "description": "Voluntary blood donor listings"
+    },
+    "/blood_requests/{requestId}": {
+      "schema": "bloodRequest",
+      "description": "Emergency blood requests listings"
+    },
+    "/products/{productId}": {
+      "schema": "product",
+      "description": "E-commerce product listings"
+    },
+    "/orders/{orderId}": {
+      "schema": "order",
+      "description": "E-commerce purchase orders"
+    },
+    "/verificationRequests/{requestId}": {
+      "schema": "verificationRequest",
+      "description": "Onboarding applications"
+    },
+    "/rechargeRequests/{requestId}": {
+      "schema": "rechargeRequest",
+      "description": "User balance recharge tickets"
+    },
+    "/withdrawalRequests/{requestId}": {
+      "schema": "withdrawalRequest",
+      "description": "Seller/rider payment withdrawals"
+    },
+    "/support_messages/{messageId}": {
+      "schema": "supportMessage",
+      "description": "Help center feedback logs"
+    },
+    "/riderCashSubmissions/{submissionId}": {
+      "schema": "riderCashSubmission",
+      "description": "Rider cash on delivery (COD) handovers"
+    }
+  }
+}
